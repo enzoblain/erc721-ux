@@ -1,7 +1,9 @@
+import { transact as runTransaction } from '../transactionStore'
+import { transactionError } from '../transactionState'
 import { useLoad } from '../useLoad'
 import { useState } from 'react'
 import { BaseError, ContractFunctionRevertedError, isAddress } from 'viem'
-import type { Address, Hash } from 'viem'
+import type { Address } from 'viem'
 import type { WalletProvider, WalletState } from '../wallet'
 import { SEPOLIA_ID, walletError } from '../wallet'
 import { BAYC, EVALUATOR, baycAbi, client, evaluatorAbi, sendAction } from './client'
@@ -42,7 +44,6 @@ function Collection({ wallet, getProvider, navigate }: Props) {
   const [reload, setReload] = useState(0)
   const [pending, setPending] = useState(false)
   const [status, setStatus] = useState('')
-  const [txs, setTxs] = useState<{ label: string; hash: Hash }[]>([])
   const [error, setError] = useState('')
   const [galleryAddress, setGalleryAddress] = useState(wallet.address ?? '')
   const ready = !!wallet.address && wallet.chainId === SEPOLIA_ID
@@ -51,14 +52,10 @@ function Collection({ wallet, getProvider, navigate }: Props) {
     const provider = getProvider()
     if (!ready || !wallet.address || !provider) return
     const account = wallet.address as Address
-    setPending(true); setError(''); setTxs([])
-    const transact = async (action: Parameters<typeof sendAction>[2], label: string) => {
-      setStatus(`${label} : confirme dans ton wallet.`)
-      await sendAction(provider, account, action, (hash) => {
-        setTxs((previous) => [...previous.filter((tx) => tx.label !== label), { label, hash }])
-        setStatus(`${label} : confirmation sur Sepolia en cours…`)
-      })
-    }
+    setPending(true); setError('')
+    const transact = (action: Parameters<typeof sendAction>[2], label: string) =>
+      runTransaction(provider, account, action, label)
+
     try {
       if (kind === 'claim') {
         await transact('claimAToken', 'Création du NFT')
@@ -76,7 +73,7 @@ function Collection({ wallet, getProvider, navigate }: Props) {
         setStatus('Exercice FakeBAYC validé : 2 points attribués.')
       }
       setReload((value) => value + 1)
-    } catch (cause) { setError(message(cause)); setStatus('') }
+    } catch (cause) { setError(transactionError(cause)); setStatus('') }
     finally { setPending(false) }
   }
 
@@ -92,7 +89,6 @@ function Collection({ wallet, getProvider, navigate }: Props) {
       </div>
       <p>L’inscription à l’Evaluator sera proposée si nécessaire avant la validation.</p>
       {status && <p role="status">{status}</p>}
-      {txs.map((tx) => <p key={tx.label}><a href={`https://sepolia.etherscan.io/tx/${tx.hash}`} target="_blank" rel="noreferrer">{tx.label} — voir la transaction</a></p>)}
       {error && <p role="alert" className="error">{error}</p>}
     </section>
     <section>

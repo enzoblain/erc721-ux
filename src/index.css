@@ -28,3 +28,9 @@ a { color: #2649a8; }
 
 select, textarea { box-sizing: border-box; display: block; width: 100%; margin: .5rem 0 1rem; padding: .75rem; font: inherit; border: 1px solid #a7b3c9; border-radius: 8px; }
 textarea { font-family: monospace; overflow-wrap: anywhere; }
+
+.transaction-list { list-style: none; padding: 0; }
+.transaction { border-left: 4px solid #8091b5; padding: .5rem 1rem; margin: 1rem 0; background: #f6f8fc; }
+.transaction-success { border-color: #21834c; }
+.transaction-error { border-color: #b93c35; }
+.transaction-pending, .transaction-wallet { border-color: #b17b00; }

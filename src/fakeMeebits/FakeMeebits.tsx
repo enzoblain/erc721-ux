@@ -1,8 +1,10 @@
+import { transact as runTransaction } from '../transactionStore'
+import { transactionError } from '../transactionState'
 import { useState } from 'react'
-import { BaseError, encodeAbiParameters, keccak256, recoverMessageAddress } from 'viem'
-import type { Address, Hash } from 'viem'
+import { encodeAbiParameters, keccak256, recoverMessageAddress } from 'viem'
+import type { Address } from 'viem'
 import { client, CLAIMER, MEEBITS, EVALUATOR, baycAbi, claimerAbi, evaluatorAbi, sendAction } from '../fakeBayc/client'
-import { SEPOLIA_ID, walletError } from '../wallet'
+import { SEPOLIA_ID } from '../wallet'
 import type { WalletProvider, WalletState } from '../wallet'
 import { useLoad } from '../useLoad'
 import signatureFile from './signatures.json'
@@ -11,7 +13,6 @@ import type { SignedToken } from './signatures'
 
 const signatures = parseSignatures(signatureFile)
 type Props = { wallet: WalletState; getProvider: () => WalletProvider | null }
-const errorMessage = (cause: unknown) => cause instanceof BaseError ? cause.shortMessage : walletError(cause)
 
 async function readAvailable() {
   const blockNumber = await client.getBlockNumber()
@@ -73,21 +74,16 @@ export default function FakeMeebits({ wallet, getProvider }: Props) {
   const [pending, setPending] = useState(false)
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
-  const [txs, setTxs] = useState<{ label: string; hash: Hash }[]>([])
   const ready = !!wallet.address && wallet.chainId === SEPOLIA_ID
 
   async function act(item?: SignedToken) {
     const provider = getProvider()
     if (!ready || !provider || !wallet.address) return
     const account = wallet.address as Address
-    setPending(true); setError(''); setStatus(''); setTxs([])
-    const transact = async (action: Parameters<typeof sendAction>[2], label: string, claim?: SignedToken) => {
-      setStatus(`${label} : confirme dans ton wallet.`)
-      await sendAction(provider, account, action, (hash) => {
-        setTxs((previous) => [...previous.filter((tx) => tx.label !== label), { label, hash }])
-        setStatus(`${label} : confirmation sur Sepolia en cours…`)
-      }, claim)
-    }
+    setPending(true); setError(''); setStatus('')
+    const transact = (action: Parameters<typeof sendAction>[2], label: string, claim?: SignedToken) =>
+      runTransaction(provider, account, action, label, claim)
+
     try {
       if (item) {
         await transact('claimMeebit', 'Claim FakeMeebits', item)
@@ -106,7 +102,7 @@ export default function FakeMeebits({ wallet, getProvider }: Props) {
         if (!verified) throw new Error('La validation n’a pas été confirmée par l’Evaluator.')
         setStatus('Exercice FakeMeebits validé : 2 points attribués.')
       }
-    } catch (cause) { setError(errorMessage(cause)); setStatus('') }
+    } catch (cause) { setError(transactionError(cause)); setStatus('') }
     finally { setPending(false); setReload((value) => value + 1) }
   }
 
@@ -124,7 +120,6 @@ export default function FakeMeebits({ wallet, getProvider }: Props) {
       <p>Une fois ton FakeMeebits reçu, valide l’exercice avec le même wallet. L’inscription au TD sera proposée si nécessaire.</p>
       <button disabled={!ready || pending} onClick={() => void act()}>Valider mes points</button>
       {status && <p role="status">{status}</p>}
-      {txs.map((tx) => <p key={tx.label}><a href={`https://sepolia.etherscan.io/tx/${tx.hash}`} target="_blank" rel="noreferrer">{tx.label} — voir la transaction</a></p>)}
       {error && <p className="error" role="alert">{error}</p>}
     </section>
   </>

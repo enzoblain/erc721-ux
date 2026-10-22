@@ -60,3 +60,9 @@ Le bouton de validation vérifie la possession d’un FakeMeebits, inscrit le wa
 Source des signatures : https://github.com/Elli610/Blockchain-101/blob/feat/erc721-ux-101/workshops/solidity/erc721-ux-101/signatures/output-sig.json
 
 La page récupère aussi le signataire de chaque signature sélectionnée et vérifie son autorisation dans `whitelist(signer)`. La simulation du 22 octobre 2026 a montré que la signature officielle du token 0 est refusée (« signer not whitelisted ») sur le Claimer fourni. Le bouton est désactivé pour les signatures non autorisées ; une correction des données ou de la configuration par l’enseignant est nécessaire pour ces signatures.
+
+## Transactions et ENS
+
+Le panneau global « Mes transactions » conserve les étapes de toutes les écritures lors de la navigation : vérification, confirmation dans le wallet, attente sur Sepolia, puis succès confirmé ou erreur. Il suit les accélérations et n’annonce pas de succès pour une annulation ou un remplacement par une autre action. Les liens Etherscan restent visibles si la confirmation échoue après l’envoi.
+
+L’identité connectée utilise le nom ENS principal sur Ethereum mainnet si sa résolution directe confirme l’adresse. L’adresse brute reste affichée en l’absence de nom ou en cas de panne ; l’adresse complète est aussi accessible au survol. `VITE_MAINNET_RPC_URL` est facultatif.

@@ -1,9 +1,11 @@
+import { transact as runTransaction } from './transactionStore'
+import { transactionError } from './transactionState'
 import { useState } from 'react'
-import { BaseError, formatEther, isAddress } from 'viem'
-import type { Address, Hash } from 'viem'
+import { formatEther, isAddress } from 'viem'
+import type { Address } from 'viem'
 import { client, EVALUATOR, evaluatorAbi, NEFTURIANS, nefturiansAbi, sendAction } from './fakeBayc/client'
 import { useLoad } from './useLoad'
-import { SEPOLIA_ID, walletError } from './wallet'
+import { SEPOLIA_ID } from './wallet'
 import type { WalletProvider, WalletState } from './wallet'
 
 type Props = { path: string; wallet: WalletState; getProvider: () => WalletProvider | null; navigate: (path: string) => void }
@@ -49,7 +51,6 @@ export default function FakeNefturians({ path, wallet, getProvider, navigate }: 
   const [pending, setPending] = useState(false)
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
-  const [txs, setTxs] = useState<{ label: string; hash: Hash }[]>([])
   const [reload, setReload] = useState(0)
   const [address, setAddress] = useState(wallet.address ?? '')
   const [page, setPage] = useState(0)
@@ -60,14 +61,10 @@ export default function FakeNefturians({ path, wallet, getProvider, navigate }: 
     const provider = getProvider()
     if (!ready || !provider || !wallet.address) return
     const account = wallet.address as Address
-    setPending(true); setStatus(''); setError(''); setTxs([])
-    const transact = async (action: Parameters<typeof sendAction>[2], label: string) => {
-      setStatus(`${label} : confirme dans ton wallet.`)
-      await sendAction(provider, account, action, (hash) => {
-        setTxs((previous) => [...previous.filter((tx) => tx.label !== label), { label, hash }])
-        setStatus(`${label} : confirmation sur Sepolia en cours…`)
-      })
-    }
+    setPending(true); setStatus(''); setError('')
+    const transact = (action: Parameters<typeof sendAction>[2], label: string) =>
+      runTransaction(provider, account, action, label)
+
     try {
       if (kind === 'buy') {
         await transact('buyAToken', 'Achat FakeNefturians')
@@ -85,7 +82,7 @@ export default function FakeNefturians({ path, wallet, getProvider, navigate }: 
         setStatus('Exercice FakeNefturians validé : 2 points attribués.')
       }
       setReload((value) => value + 1)
-    } catch (cause) { setError(cause instanceof BaseError ? cause.shortMessage : walletError(cause)); setStatus('') }
+    } catch (cause) { setError(transactionError(cause)); setStatus('') }
     finally { setPending(false) }
   }
 
@@ -105,7 +102,6 @@ export default function FakeNefturians({ path, wallet, getProvider, navigate }: 
       </div>
       <p>Le prix est relu avant chaque achat et envoyé à buyAToken(). L’inscription à l’Evaluator sera proposée si nécessaire avant la validation.</p>
       {status && <p role="status">{status}</p>}
-      {txs.map((tx) => <p key={tx.label}><a href={`https://sepolia.etherscan.io/tx/${tx.hash}`} target="_blank" rel="noreferrer">{tx.label} — voir la transaction</a></p>)}
       {error && <p className="error" role="alert">{error}</p>}
     </section>
     <section>

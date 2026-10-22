@@ -1,3 +1,5 @@
+import { assertConfirmed } from '../transactionState'
+import type { TransactionUpdate } from '../transactionState'
 import { createPublicClient, createWalletClient, custom, http, parseAbi } from 'viem'
 import type { Address, EIP1193Provider, Hash } from 'viem'
 import { sepolia } from 'viem/chains'
@@ -47,9 +49,10 @@ export const client = createPublicClient({
 export async function sendAction(
   provider: WalletProvider, account: Address,
   action: 'claimMeebit' | 'ex3_claimedFakeMeebits' | 'claimAToken' | 'buyAToken' | 'submitExercise' | 'ex1_claimedFakeBAYC' | 'ex2_boughtFakeNefturians',
-  onHash: (hash: Hash) => void,
+  onUpdate: (update: TransactionUpdate) => void,
   claim?: { tokenId: bigint; signature: `0x${string}` },
 ) {
+  onUpdate({ stage: 'preparing' })
   const [chainId, accounts] = await Promise.all([
     provider.request({ method: 'eth_chainId' }), provider.request({ method: 'eth_accounts' }),
   ])
@@ -64,23 +67,32 @@ export async function sendAction(
     const claimed = await client.readContract({ address: CLAIMER, abi: claimerAbi, functionName: 'tokensThatWereClaimed', args: [claim.tokenId] })
     if (claimed) throw new Error('Ce NFT vient d’être réclamé. Actualise la liste et choisis-en un autre.')
     const { request } = await client.simulateContract({ address: CLAIMER, abi: claimerAbi, functionName: 'claimAToken', args: [claim.tokenId, claim.signature], account, value: 0n })
+    onUpdate({ stage: 'wallet' })
     hash = await wallet.writeContract(request)
   } else if (action === 'buyAToken') {
     const value = await client.readContract({ address: NEFTURIANS, abi: nefturiansAbi, functionName: 'tokenPrice' })
     const { request } = await client.simulateContract({ address: NEFTURIANS, abi: nefturiansAbi, functionName: action, account, value })
+    onUpdate({ stage: 'wallet' })
     hash = await wallet.writeContract(request)
   } else if (action === 'claimAToken') {
     const { request } = await client.simulateContract({ address: BAYC, abi: baycAbi, functionName: action, account })
+    onUpdate({ stage: 'wallet' })
     hash = await wallet.writeContract(request)
   } else {
     const { request } = await client.simulateContract({ address: EVALUATOR, abi: evaluatorAbi, functionName: action, account })
+    onUpdate({ stage: 'wallet' })
     hash = await wallet.writeContract(request)
   }
-  onHash(hash)
+  onUpdate({ stage: 'pending', hash })
+  let replacement: string | undefined
   const receipt = await client.waitForTransactionReceipt({
     hash,
-    onReplaced: ({ transaction }) => onHash(transaction.hash),
+    onReplaced: ({ reason, transaction }) => {
+      replacement = reason
+      onUpdate({ stage: 'pending', hash: transaction.hash })
+    },
   })
-  if (receipt.status !== 'success') throw new Error('La transaction a échoué sur la chaîne.')
+  assertConfirmed(receipt.status, replacement)
+  onUpdate({ stage: 'success', hash: receipt.transactionHash })
   return receipt
 }

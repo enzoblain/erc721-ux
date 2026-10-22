@@ -1,3 +1,5 @@
+import Transactions from './Transactions'
+import ConnectedIdentity from './ConnectedIdentity'
 import FakeMeebits from './fakeMeebits/FakeMeebits'
 import FakeNefturians from './FakeNefturians'
 import FakeBayc from './fakeBayc/FakeBayc'
@@ -20,8 +22,10 @@ export default function App() {
   const [error, setError] = useState('')
   const [qrCode, setQrCode] = useState('')
   const [path, setPath] = useState(window.location.pathname)
-  const [blockNumber, setBlockNumber] = useState<string | null>(null)
-  const [blockError, setBlockError] = useState('')
+  const blockKey = `${path}:${wallet.address}:${wallet.chainId}:${mode}`
+  const [block, setBlock] = useState<{ key: string; number: string | null; error: string }>({ key: '', number: null, error: '' })
+  const blockNumber = block.key === blockKey ? block.number : null
+  const blockError = block.key === blockKey ? block.error : ''
 
   const providerRef = useRef<WalletProvider | null>(null)
   const mobileRef = useRef<WalletConnectProvider | null>(null)
@@ -52,14 +56,16 @@ export default function App() {
 
   useEffect(() => {
     if (!wallet.address || wallet.chainId === null) return
-    if (wallet.chainId !== SEPOLIA_ID && path !== '/error') navigate('/error', true)
-    else if (wallet.chainId === SEPOLIA_ID && path === '/error') navigate('/chain-info', true)
+    const target = wallet.chainId !== SEPOLIA_ID && path !== '/error' ? '/error'
+      : wallet.chainId === SEPOLIA_ID && path === '/error' ? '/chain-info' : null
+    if (target) {
+      window.history.replaceState(null, '', target)
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    }
   }, [wallet.address, wallet.chainId, path])
 
   useEffect(() => {
     const provider = providerRef.current
-    setBlockNumber(null)
-    setBlockError('')
     if (path !== '/chain-info' || !wallet.address || wallet.chainId !== SEPOLIA_ID || !provider) return
     let active = true
     let timer: ReturnType<typeof setTimeout>
@@ -70,18 +76,17 @@ export default function App() {
           throw new Error('Le wallet a renvoyé un numéro de bloc invalide.')
         }
         if (active) {
-          setBlockNumber(BigInt(value).toString())
-          setBlockError('')
+          setBlock({ key: blockKey, number: BigInt(value).toString(), error: '' })
         }
       } catch (cause) {
-        if (active) setBlockError(walletError(cause))
+        if (active) setBlock({ key: blockKey, number: null, error: walletError(cause) })
       } finally {
         if (active) timer = setTimeout(() => void refreshBlock(), 12000)
       }
     }
     void refreshBlock()
     return () => { active = false; clearTimeout(timer) }
-  }, [path, wallet.address, wallet.chainId, mode])
+  }, [path, wallet.address, wallet.chainId, mode, blockKey])
 
   function attach(provider: WalletProvider, kind: 'browser' | 'mobile') {
     unsubscribeRef.current?.()
@@ -224,7 +229,7 @@ export default function App() {
               <dl>
                 <dt>chainId</dt><dd>{wallet.chainId}</dd>
                 <dt>Dernier bloc</dt><dd aria-live="polite">{blockError ? 'Indisponible' : blockNumber ?? 'Chargement…'}</dd>
-                <dt>Adresse connectée</dt><dd className="address">{wallet.address}</dd>
+                <dt>Adresse connectée</dt><dd className="address"><ConnectedIdentity key={wallet.address} address={wallet.address} /></dd>
               </dl>
               <p>Le numéro de bloc est actualisé toutes les 12 secondes.</p>
               {blockError && <p role="alert" className="error">Lecture du bloc impossible : {blockError}. Nouvelle tentative automatique.</p>}
@@ -241,7 +246,7 @@ export default function App() {
         <section aria-label="Wallet connecté">
           <dl>
             <dt>Connexion</dt><dd>{mode === 'browser' ? 'Wallet navigateur' : 'WalletConnect'}</dd>
-            <dt>Adresse</dt><dd className="address">{wallet.address ?? 'Aucun compte accessible : déverrouille ton wallet.'}</dd>
+            <dt>Adresse</dt><dd className="address">{wallet.address ? <ConnectedIdentity key={wallet.address} address={wallet.address} /> : 'Aucun compte accessible : déverrouille ton wallet.'}</dd>
             <dt>Réseau</dt><dd>{wallet.chainId === SEPOLIA_ID ? 'Sepolia' : wallet.chainId === null ? 'Inconnu' : `Autre réseau (${wallet.chainId})`}</dd>
           </dl>
           {wallet.chainId !== SEPOLIA_ID && <p className="notice">Sélectionne Sepolia pour continuer le TD.</p>}
@@ -253,6 +258,7 @@ export default function App() {
           </div>
         </section>
       )}
+      <Transactions />
       {busy && <p role="status">En attente du wallet…</p>}
       {qrCode && <section className="qr" aria-label="Connexion mobile">
         <h2>Scanner avec ton wallet</h2>
