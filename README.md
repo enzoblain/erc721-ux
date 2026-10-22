@@ -36,3 +36,11 @@ Source du TD : https://github.com/Elli610/Blockchain-101/tree/feat/erc721-ux-101
 ## Informations réseau
 
 La page `/chain-info` affiche le chainId, l’adresse connectée et le dernier bloc, actualisé toutes les 12 secondes via le provider du wallet. Un wallet connecté sur un autre réseau est redirigé vers `/error`. Après passage sur Sepolia, l’application revient automatiquement à `/chain-info`. Sans wallet connecté, la page propose la connexion.
+
+## FakeBAYC
+
+- `/fakeBayc` : nom et compteur de NFT créés, création depuis le wallet et validation des points.
+- `/fakeBayc/123` : image, nom, description et propriétaire du NFT 123 ; état d’erreur pour un NFT inexistant.
+- `/fakeBayc/gallery/0x…` : tous les NFT d’une adresse, par pages de 24, avec images chargées à la demande.
+
+Les lectures utilisent le RPC Sepolia. Chaque transaction nécessite une confirmation dans le wallet ; son résultat et son lien Etherscan sont affichés. « Valider mes points » vérifie la possession d’un NFT, propose `submitExercise()` si nécessaire, puis appelle `ex1_claimedFakeBAYC()`. Aucun point n’est annoncé avant confirmation dans l’Evaluator.
