@@ -44,3 +44,9 @@ La page `/chain-info` affiche le chainId, l’adresse connectée et le dernier b
 - `/fakeBayc/gallery/0x…` : tous les NFT d’une adresse, par pages de 24, avec images chargées à la demande.
 
 Les lectures utilisent le RPC Sepolia. Chaque transaction nécessite une confirmation dans le wallet ; son résultat et son lien Etherscan sont affichés. « Valider mes points » vérifie la possession d’un NFT, propose `submitExercise()` si nécessaire, puis appelle `ex1_claimedFakeBAYC()`. Aucun point n’est annoncé avant confirmation dans l’Evaluator.
+
+## FakeNefturians
+
+`/fakeNefturians` affiche le prix on-chain en ETH et permet d’acheter un NFT. Le prix est relu juste avant la simulation et envoyé comme `value` à `buyAToken()`. Le bouton de validation vérifie le solde, inscrit le wallet si nécessaire, appelle `ex2_boughtFakeNefturians()` et vérifie la progression.
+
+`/fakeNefturians/0x…` liste tous les identifiants détenus par une adresse, par pages de 24, avec un état vide ou une erreur de lecture explicite.

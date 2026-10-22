@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useLoad } from '../useLoad'
+import { useState } from 'react'
 import { BaseError, ContractFunctionRevertedError, isAddress } from 'viem'
 import type { Address, Hash } from 'viem'
 import type { WalletProvider, WalletState } from '../wallet'
@@ -8,26 +9,12 @@ import { loadMetadata, parseTokenId } from './metadata'
 import type { Metadata } from './metadata'
 
 type Props = { path: string; wallet: WalletState; getProvider: () => WalletProvider | null; navigate: (path: string) => void }
-type Result<T> = { value?: T; error?: string }
 
 function message(cause: unknown) {
   if (cause instanceof BaseError) return cause.shortMessage
   return walletError(cause)
 }
 
-function useLoad<T>(loader: (signal: AbortSignal) => Promise<T>) {
-  const [result, setResult] = useState<Result<T>>({})
-  useEffect(() => {
-    const abort = new AbortController()
-    void loader(abort.signal).then((value) => {
-      if (!abort.signal.aborted) setResult({ value })
-    }).catch((cause: unknown) => {
-      if (!abort.signal.aborted) setResult({ error: message(cause) })
-    })
-    return () => abort.abort()
-  }, [loader])
-  return result
-}
 
 function Link({ to, navigate, children }: { to: string; navigate: Props['navigate']; children: React.ReactNode }) {
   return <a href={to} onClick={(event) => {

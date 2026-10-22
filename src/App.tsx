@@ -1,3 +1,4 @@
+import FakeNefturians from './FakeNefturians'
 import FakeBayc from './fakeBayc/FakeBayc'
 import { useEffect, useRef, useState } from 'react'
 import type WalletConnectProvider from '@walletconnect/ethereum-provider'
@@ -206,8 +207,9 @@ export default function App() {
         <a href="/chain-info" onClick={(event) => { event.preventDefault(); navigate('/chain-info') }}>Informations réseau</a>
       </nav>
       <p><a href="/fakeBayc" onClick={(event) => { event.preventDefault(); navigate('/fakeBayc') }}>FakeBAYC</a></p>
-      <h1>{path.startsWith('/fakeBayc') ? 'FakeBAYC' : path === '/error' ? 'Réseau incorrect' : path === '/chain-info' ? 'Informations réseau' : 'Connecter mon wallet'}</h1>
-      {path.startsWith('/fakeBayc') ? <FakeBayc key={`${path}:${wallet.address ?? ''}:${wallet.chainId ?? ''}`} path={path} wallet={wallet} getProvider={() => providerRef.current} navigate={navigate} /> : path === '/error' ? (
+      <p><a href="/fakeNefturians" onClick={(event) => { event.preventDefault(); navigate('/fakeNefturians') }}>FakeNefturians</a></p>
+      <h1>{path.startsWith('/fakeNefturians') ? 'FakeNefturians' : path.startsWith('/fakeBayc') ? 'FakeBAYC' : path === '/error' ? 'Réseau incorrect' : path === '/chain-info' ? 'Informations réseau' : 'Connecter mon wallet'}</h1>
+      {path.startsWith('/fakeNefturians') ? <FakeNefturians key={`${path}:${wallet.address ?? ''}:${wallet.chainId ?? ''}`} path={path} wallet={wallet} getProvider={() => providerRef.current} navigate={navigate} /> : path.startsWith('/fakeBayc') ? <FakeBayc key={`${path}:${wallet.address ?? ''}:${wallet.chainId ?? ''}`} path={path} wallet={wallet} getProvider={() => providerRef.current} navigate={navigate} /> : path === '/error' ? (
         <section role="alert">
           <h2>Sepolia est nécessaire</h2>
           <p>{wallet.chainId === null ? 'Aucun réseau connecté.' : `Ton wallet utilise le réseau ${wallet.chainId}. Le TD utilise Sepolia (11155111).`}</p>
