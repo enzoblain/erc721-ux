@@ -16,6 +16,10 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [qrCode, setQrCode] = useState('')
+  const [path, setPath] = useState(window.location.pathname)
+  const [blockNumber, setBlockNumber] = useState<string | null>(null)
+  const [blockError, setBlockError] = useState('')
+
   const providerRef = useRef<WalletProvider | null>(null)
   const mobileRef = useRef<WalletConnectProvider | null>(null)
   const unsubscribeRef = useRef<(() => void) | null>(null)
@@ -28,6 +32,53 @@ export default function App() {
       unsubscribeRef.current?.()
     }
   }, [])
+
+  function navigate(nextPath: string, replace = false) {
+    if (window.location.pathname !== nextPath) {
+      if (replace) window.history.replaceState(null, '', nextPath)
+      else window.history.pushState(null, '', nextPath)
+    }
+    setPath(nextPath)
+  }
+
+  useEffect(() => {
+    const onPopState = () => setPath(window.location.pathname)
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+
+  useEffect(() => {
+    if (!wallet.address || wallet.chainId === null) return
+    if (wallet.chainId !== SEPOLIA_ID && path !== '/error') navigate('/error', true)
+    else if (wallet.chainId === SEPOLIA_ID && path === '/error') navigate('/chain-info', true)
+  }, [wallet.address, wallet.chainId, path])
+
+  useEffect(() => {
+    const provider = providerRef.current
+    setBlockNumber(null)
+    setBlockError('')
+    if (path !== '/chain-info' || !wallet.address || wallet.chainId !== SEPOLIA_ID || !provider) return
+    let active = true
+    let timer: ReturnType<typeof setTimeout>
+    async function refreshBlock() {
+      try {
+        const value = await provider!.request({ method: 'eth_blockNumber' })
+        if (typeof value !== 'string' || !/^0x[0-9a-f]+$/i.test(value)) {
+          throw new Error('Le wallet a renvoyé un numéro de bloc invalide.')
+        }
+        if (active) {
+          setBlockNumber(BigInt(value).toString())
+          setBlockError('')
+        }
+      } catch (cause) {
+        if (active) setBlockError(walletError(cause))
+      } finally {
+        if (active) timer = setTimeout(() => void refreshBlock(), 12000)
+      }
+    }
+    void refreshBlock()
+    return () => { active = false; clearTimeout(timer) }
+  }, [path, wallet.address, wallet.chainId, mode])
 
   function attach(provider: WalletProvider, kind: 'browser' | 'mobile') {
     unsubscribeRef.current?.()
@@ -148,8 +199,33 @@ export default function App() {
   return (
     <main>
       <p className="eyebrow">TD7 · ERC721 UX 101</p>
-      <h1>Connecter mon wallet</h1>
-      <p>Utilise ton wallet navigateur ou scanne le QR code avec ton wallet mobile.</p>
+      <nav aria-label="Navigation principale">
+        <a href="/" onClick={(event) => { event.preventDefault(); navigate('/') }}>Connexion</a>
+        {' · '}
+        <a href="/chain-info" onClick={(event) => { event.preventDefault(); navigate('/chain-info') }}>Informations réseau</a>
+      </nav>
+      <h1>{path === '/error' ? 'Réseau incorrect' : path === '/chain-info' ? 'Informations réseau' : 'Connecter mon wallet'}</h1>
+      {path === '/error' ? (
+        <section role="alert">
+          <h2>Sepolia est nécessaire</h2>
+          <p>{wallet.chainId === null ? 'Aucun réseau connecté.' : `Ton wallet utilise le réseau ${wallet.chainId}. Le TD utilise Sepolia (11155111).`}</p>
+          <p>Utilise le bouton « Passer sur Sepolia » ci-dessous pour revenir aux informations réseau.</p>
+        </section>
+      ) : path === '/chain-info' ? (
+        <section aria-label="Informations de la chaîne">
+          {!wallet.address ? <p>Connecte ton wallet ci-dessous pour afficher les informations réseau.</p> : wallet.chainId === SEPOLIA_ID ? (
+            <>
+              <dl>
+                <dt>chainId</dt><dd>{wallet.chainId}</dd>
+                <dt>Dernier bloc</dt><dd aria-live="polite">{blockError ? 'Indisponible' : blockNumber ?? 'Chargement…'}</dd>
+                <dt>Adresse connectée</dt><dd className="address">{wallet.address}</dd>
+              </dl>
+              <p>Le numéro de bloc est actualisé toutes les 12 secondes.</p>
+              {blockError && <p role="alert" className="error">Lecture du bloc impossible : {blockError}. Nouvelle tentative automatique.</p>}
+            </>
+          ) : <p role="status">Vérification du réseau…</p>}
+        </section>
+      ) : <p>Utilise ton wallet navigateur ou scanne le QR code avec ton wallet mobile.</p>}
       {!mode ? (
         <div className="actions">
           <button disabled={busy} onClick={() => void connectBrowser()}>Wallet navigateur</button>

@@ -32,3 +32,7 @@ npm run lint
 ```
 
 Source du TD : https://github.com/Elli610/Blockchain-101/tree/feat/erc721-ux-101/workshops/solidity/erc721-ux-101
+
+## Informations réseau
+
+La page `/chain-info` affiche le chainId, l’adresse connectée et le dernier bloc, actualisé toutes les 12 secondes via le provider du wallet. Un wallet connecté sur un autre réseau est redirigé vers `/error`. Après passage sur Sepolia, l’application revient automatiquement à `/chain-info`. Sans wallet connecté, la page propose la connexion.
