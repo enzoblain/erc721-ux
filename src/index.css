@@ -25,3 +25,6 @@ input { box-sizing: border-box; width: 100%; padding: .8rem; margin: .5rem 0 1re
 .nft-image { display: block; width: 100%; max-width: 480px; aspect-ratio: 1; object-fit: contain; border-radius: 8px; background: #f4f6fa; margin-bottom: .75rem; }
 .image-placeholder { display: grid; place-items: center; aspect-ratio: 1; max-width: 480px; background: #f4f6fa; border-radius: 8px; color: #52627e; }
 a { color: #2649a8; }
+
+select, textarea { box-sizing: border-box; display: block; width: 100%; margin: .5rem 0 1rem; padding: .75rem; font: inherit; border: 1px solid #a7b3c9; border-radius: 8px; }
+textarea { font-family: monospace; overflow-wrap: anywhere; }

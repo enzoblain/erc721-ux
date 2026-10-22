@@ -1,3 +1,4 @@
+import FakeMeebits from './fakeMeebits/FakeMeebits'
 import FakeNefturians from './FakeNefturians'
 import FakeBayc from './fakeBayc/FakeBayc'
 import { useEffect, useRef, useState } from 'react'
@@ -208,8 +209,9 @@ export default function App() {
       </nav>
       <p><a href="/fakeBayc" onClick={(event) => { event.preventDefault(); navigate('/fakeBayc') }}>FakeBAYC</a></p>
       <p><a href="/fakeNefturians" onClick={(event) => { event.preventDefault(); navigate('/fakeNefturians') }}>FakeNefturians</a></p>
-      <h1>{path.startsWith('/fakeNefturians') ? 'FakeNefturians' : path.startsWith('/fakeBayc') ? 'FakeBAYC' : path === '/error' ? 'Réseau incorrect' : path === '/chain-info' ? 'Informations réseau' : 'Connecter mon wallet'}</h1>
-      {path.startsWith('/fakeNefturians') ? <FakeNefturians key={`${path}:${wallet.address ?? ''}:${wallet.chainId ?? ''}`} path={path} wallet={wallet} getProvider={() => providerRef.current} navigate={navigate} /> : path.startsWith('/fakeBayc') ? <FakeBayc key={`${path}:${wallet.address ?? ''}:${wallet.chainId ?? ''}`} path={path} wallet={wallet} getProvider={() => providerRef.current} navigate={navigate} /> : path === '/error' ? (
+      <p><a href="/fakeMeebits" onClick={(event) => { event.preventDefault(); navigate('/fakeMeebits') }}>FakeMeebits</a></p>
+      <h1>{path === '/fakeMeebits' ? 'FakeMeebits' : path.startsWith('/fakeNefturians') ? 'FakeNefturians' : path.startsWith('/fakeBayc') ? 'FakeBAYC' : path === '/error' ? 'Réseau incorrect' : path === '/chain-info' ? 'Informations réseau' : 'Connecter mon wallet'}</h1>
+      {path === '/fakeMeebits' ? <FakeMeebits key={`${wallet.address ?? ''}:${wallet.chainId ?? ''}`} wallet={wallet} getProvider={() => providerRef.current} /> : path.startsWith('/fakeNefturians') ? <FakeNefturians key={`${path}:${wallet.address ?? ''}:${wallet.chainId ?? ''}`} path={path} wallet={wallet} getProvider={() => providerRef.current} navigate={navigate} /> : path.startsWith('/fakeBayc') ? <FakeBayc key={`${path}:${wallet.address ?? ''}:${wallet.chainId ?? ''}`} path={path} wallet={wallet} getProvider={() => providerRef.current} navigate={navigate} /> : path === '/error' ? (
         <section role="alert">
           <h2>Sepolia est nécessaire</h2>
           <p>{wallet.chainId === null ? 'Aucun réseau connecté.' : `Ton wallet utilise le réseau ${wallet.chainId}. Le TD utilise Sepolia (11155111).`}</p>

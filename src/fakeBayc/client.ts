@@ -11,6 +11,15 @@ export const nefturiansAbi = parseAbi([
   'function balanceOf(address owner) view returns (uint256)',
   'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
 ])
+export const MEEBITS = '0x71A66d19c6ABFc629e0c71D6606105af991713F0' as const
+export const CLAIMER = '0x86FB988958dB5A703B3A458284c36976638A67e3' as const
+export const claimerAbi = parseAbi([
+  'function tokensThatWereClaimed(uint256 tokenId) view returns (bool)',
+  'function maxTokenId() view returns (uint256)',
+  'function whitelist(address signer) view returns (bool)',
+  'function fakeMeebits() view returns (address)',
+  'function claimAToken(uint256 tokenId, bytes signature) payable',
+])
 export const EVALUATOR = '0x2822168E32E642a93DC677384d8f3F13E5b0EfC2' as const
 export const baycAbi = parseAbi([
   'function name() view returns (string)',
@@ -28,6 +37,7 @@ export const evaluatorAbi = parseAbi([
   'function submitExercise()',
   'function ex1_claimedFakeBAYC()',
   'function ex2_boughtFakeNefturians()',
+  'function ex3_claimedFakeMeebits()',
 ])
 export const client = createPublicClient({
   chain: sepolia,
@@ -36,8 +46,9 @@ export const client = createPublicClient({
 
 export async function sendAction(
   provider: WalletProvider, account: Address,
-  action: 'claimAToken' | 'buyAToken' | 'submitExercise' | 'ex1_claimedFakeBAYC' | 'ex2_boughtFakeNefturians',
+  action: 'claimMeebit' | 'ex3_claimedFakeMeebits' | 'claimAToken' | 'buyAToken' | 'submitExercise' | 'ex1_claimedFakeBAYC' | 'ex2_boughtFakeNefturians',
   onHash: (hash: Hash) => void,
+  claim?: { tokenId: bigint; signature: `0x${string}` },
 ) {
   const [chainId, accounts] = await Promise.all([
     provider.request({ method: 'eth_chainId' }), provider.request({ method: 'eth_accounts' }),
@@ -48,7 +59,13 @@ export async function sendAction(
   }
   const wallet = createWalletClient({ chain: sepolia, transport: custom(provider as EIP1193Provider) })
   let hash: Hash
-  if (action === 'buyAToken') {
+  if (action === 'claimMeebit') {
+    if (!claim) throw new Error('Sélectionne un NFT et sa signature.')
+    const claimed = await client.readContract({ address: CLAIMER, abi: claimerAbi, functionName: 'tokensThatWereClaimed', args: [claim.tokenId] })
+    if (claimed) throw new Error('Ce NFT vient d’être réclamé. Actualise la liste et choisis-en un autre.')
+    const { request } = await client.simulateContract({ address: CLAIMER, abi: claimerAbi, functionName: 'claimAToken', args: [claim.tokenId, claim.signature], account, value: 0n })
+    hash = await wallet.writeContract(request)
+  } else if (action === 'buyAToken') {
     const value = await client.readContract({ address: NEFTURIANS, abi: nefturiansAbi, functionName: 'tokenPrice' })
     const { request } = await client.simulateContract({ address: NEFTURIANS, abi: nefturiansAbi, functionName: action, account, value })
     hash = await wallet.writeContract(request)

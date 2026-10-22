@@ -50,3 +50,13 @@ Les lectures utilisent le RPC Sepolia. Chaque transaction nécessite une confirm
 `/fakeNefturians` affiche le prix on-chain en ETH et permet d’acheter un NFT. Le prix est relu juste avant la simulation et envoyé comme `value` à `buyAToken()`. Le bouton de validation vérifie le solde, inscrit le wallet si nécessaire, appelle `ex2_boughtFakeNefturians()` et vérifie la progression.
 
 `/fakeNefturians/0x…` liste tous les identifiants détenus par une adresse, par pages de 24, avec un état vide ou une erreur de lecture explicite.
+
+## FakeMeebits
+
+`/fakeMeebits` croise les 100 signatures officielles de `src/fakeMeebits/signatures.json` avec `maxTokenId()` et `tokensThatWereClaimed(tokenId)` du Claimer. La signature correspondante suit automatiquement le NFT sélectionné. La disponibilité est revérifiée et le claim simulé avant l’envoi depuis le wallet, sans pourboire.
+
+Le bouton de validation vérifie la possession d’un FakeMeebits, inscrit le wallet au TD si nécessaire, appelle `ex3_claimedFakeMeebits()` et confirme la progression. Les transactions sont accompagnées de leur état et de leur lien Etherscan.
+
+Source des signatures : https://github.com/Elli610/Blockchain-101/blob/feat/erc721-ux-101/workshops/solidity/erc721-ux-101/signatures/output-sig.json
+
+La page récupère aussi le signataire de chaque signature sélectionnée et vérifie son autorisation dans `whitelist(signer)`. La simulation du 22 octobre 2026 a montré que la signature officielle du token 0 est refusée (« signer not whitelisted ») sur le Claimer fourni. Le bouton est désactivé pour les signatures non autorisées ; une correction des données ou de la configuration par l’enseignant est nécessaire pour ces signatures.
